@@ -6,6 +6,8 @@ import 'package:invefacturacion/presentation/home/dashboard.dart';
 import 'package:invefacturacion/presentation/home/gasto/gasto_page.dart';
 import 'package:invefacturacion/presentation/home/perfil/perfil_page.dart';
 import 'package:invefacturacion/presentation/home/producto/productos_page.dart';
+import 'package:invefacturacion/presentation/home/venta/nueva_venta/nueva_venta_page.dart';
+import 'package:invefacturacion/presentation/home/venta/venta_page.dart';
 import 'package:invefacturacion/presentation/login/login_page.dart';
 import 'package:invefacturacion/utils/drawer.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +40,9 @@ class MyApp extends StatelessWidget {
             'compra':(_) => CompraPage(),
             'gasto':(_) => GastosPage(),
             'configuracion':(_) => ResponsiveLayout(),
-            'caja':(_)=> CajaPage()
+            'caja':(_)=> CajaPage(),
+            'venta':(_) => VentaPage(),
+            'nueva_venta':(_)=>NuevaVentaPage()
           }
       ),
     );

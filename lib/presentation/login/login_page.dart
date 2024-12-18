@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 48),
                           Text(
                             'Sistema de Inventario y Facturación',
-                            style: Theme.of(context).textTheme.headline5?.copyWith(
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               color: Colors.blueGrey[800],
                               fontWeight: FontWeight.bold,
                             ),

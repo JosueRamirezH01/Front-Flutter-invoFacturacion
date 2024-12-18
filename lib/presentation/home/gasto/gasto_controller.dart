@@ -2,6 +2,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_advanced_switch/flutter_advanced_switch.dart';
+import 'package:invefacturacion/presentation/components/button.dart';
 import 'package:invefacturacion/presentation/components/textFormField.dart';
 
 import '../../../data/model/compra.dart';
@@ -307,6 +308,10 @@ class GastosController {
 
                             ],
                           ),
+                          const SizedBox(height: 16),
+                          CustomButton(text: 'Guardar', onPressed:
+                          (){})
+
                       ]
                       )
                   )

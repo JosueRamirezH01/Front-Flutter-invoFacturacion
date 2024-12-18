@@ -1,10 +1,13 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:invefacturacion/presentation/components/button.dart';
 import 'package:invefacturacion/presentation/components/textFormField.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-
+import 'package:http/http.dart' as http;
 import '../../../data/model/cliente.dart';
+import '../../widget/CustomMessage.dart';
 
 class ClienteController {
   late BuildContext context;
@@ -20,6 +23,8 @@ class ClienteController {
   final direccionController = TextEditingController();
   final telefonoController = TextEditingController();
   final correoController = TextEditingController();
+
+  final String token = "apis-token-11958.uTeROsdDkbJCUsujE8qkQCtu3VPdw5pE";
 
   Future init(BuildContext context, Function refresh) async {
     this.context = context;
@@ -275,13 +280,21 @@ class ClienteController {
                         CustomTextFormField(controller: telefonoController, labelText: 'Teléfono', prefixIcon: Icons.phone_android_outlined,keyboardType: TextInputType.phone),
                         SizedBox(height: 16),
                       ],
-
-                      CustomButton(text: 'Guardar', onPressed: (){
-                        if (_formKey.currentState!.validate()) {
+                      ElevatedButton(onPressed: (){
+                        print('------');
+                        print(_tipoDocumento);
+                        print(documentoController.text);
+                        validateDocument();
+                        //refresh();
+                      }, child: Text('Guardar'))
+                      /*CustomButton(text: 'Guardar', onPressed: (){
+                        *//*if (_formKey.currentState!.validate()) {
                           // Lógica de guardado
                           Navigator.pop(context);
-                        }
-                      }),
+                        }*//*
+
+
+                      }),*/
                     ],
                   ),
                 ),
@@ -303,4 +316,64 @@ class ClienteController {
     refresh();
   }
 
+  void validateDocument() async {
+    if (documentoController.text.isEmpty) {
+      CustomMessage(
+        message: "Por favor, ingresa un tipo de documento y número válido.",
+        isPositive: false,
+
+      );
+      return;
+    }
+
+    final documentNumber = documentoController.text.trim();
+    if ((_tipoDocumento == 'DNI' && documentNumber.length != 8) ||
+        (_tipoDocumento == 'RUC' && documentNumber.length != 11)) {
+      CustomMessage(
+        message: "El número de $_tipoDocumento es inválido.",
+        isPositive: false,
+      );
+      return;
+    }
+
+    final apiUrl = _tipoDocumento == 'DNI'
+        ? 'https://api.apis.net.pe/v2/sunat/dni?numero=$documentNumber'
+        : 'https://api.apis.net.pe/v2/sunat/ruc?numero=$documentNumber';
+
+    try {
+      FocusScope.of(context).unfocus();
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Referer': 'http://apis.net.pe/api-ruc',
+        },
+      );
+
+      print("Estado de respuesta: ${response.statusCode}");
+      if (response.statusCode == 200) {
+        final decodedData = jsonDecode(response.body);
+        print("Datos obtenidos: $decodedData");
+
+        /*setModalState(() {
+          nombreController.text = _tipoDocumento == 'DNI'
+              ? decodedData['nombre'] ?? ''
+              : decodedData['razonSocial'] ?? '';
+          direccionController.text = decodedData['direccion'] ?? '';
+        });*/
+      } else {
+        CustomMessage(
+          message: "Error al validar el documento: ${response.body}",
+          isPositive: false,
+        );
+      }
+    } catch (e) {
+      print("Error en la solicitud HTTP: $e");
+      CustomMessage(
+        message: "Ocurrió un error: $e",
+        isPositive: false,
+      );
+    }
+  }
 }

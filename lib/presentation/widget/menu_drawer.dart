@@ -67,7 +67,7 @@ class WidgetMenu extends StatelessWidget {
                 children: [
                   buildMenuItem(Icons.dashboard, 'Dashboard', 0, 'dashboard'),
                   buildMenuItem(Icons.person, 'Perfil', 1, 'perfil'),
-                  buildMenuItem(Icons.shopping_cart, 'Ventas', 2, 'inventario_4'),
+                  buildMenuItem(Icons.shopping_cart, 'Ventas', 2, 'venta'),
                   buildMenuItem(LucideIcons.users, 'Clientes', 3, 'cliente'),
                   buildMenuItem(LucideIcons.box, 'Productos', 4, 'inventario'),
                   buildMenuItem(Icons.assessment, 'Compras', 5, 'compra'),
@@ -75,7 +75,7 @@ class WidgetMenu extends StatelessWidget {
                   buildMenuItem(Icons.point_of_sale, 'Caja', 7, 'caja'),
                   buildMenuItem(Icons.inventory, 'Reportes', 8, 'inventario'),
                   buildMenuItem(Icons.settings, 'Configuración', 9, 'configuracion'),
-                  buildMenuItem(Icons.help, 'Ayuda', 10, 'inventario_7'),
+                  buildMenuItem(Icons.help, 'Ayuda', 10, 'nueva_venta'),
                   // Agregar más elementos si es necesario para que la lista sea más larga
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:invefacturacion/presentation/components/button.dart';
 import 'package:invefacturacion/presentation/components/textFormField.dart';
 import 'package:invefacturacion/presentation/home/cliente/cliente_controller.dart';
@@ -31,6 +32,10 @@ class _ClientePageState extends State<ClientePage> {
   @override
   void initState() {
     super.initState();
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+      _con.init(context, refresh);
+
+    });
     _updatePage();
     _searchController.addListener(_onSearchChanged);
   }
@@ -321,6 +326,9 @@ class _ClientePageState extends State<ClientePage> {
     _con.telefonoController.dispose();
     super.dispose();
   }
+  void refresh(){
+    setState(() {
 
-
+    });
+  }
 }

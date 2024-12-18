@@ -6,6 +6,8 @@ class CustomTextFormField extends StatelessWidget {
   final IconData? prefixIcon;
   final IconData? suffixIcon;
   final bool obscureText;
+  final String? initialValue;
+
   final VoidCallback? onToggleVisibility;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
@@ -16,6 +18,7 @@ class CustomTextFormField extends StatelessWidget {
 
   const CustomTextFormField({
     Key? key,
+    this.initialValue,
     required this.controller,
     required this.labelText,
     this.width,
@@ -40,6 +43,7 @@ class CustomTextFormField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        initialValue: initialValue,
         decoration: InputDecoration(
           labelText: labelText,
           border: OutlineInputBorder(

@@ -7,6 +7,7 @@ import 'package:invefacturacion/data/model/cliente.dart';
 import 'package:invefacturacion/data/model/producto_compra.dart';
 import 'package:invefacturacion/presentation/components/textFormField.dart';
 import 'package:invefacturacion/presentation/home/producto/producto_controller.dart';
+import 'package:invefacturacion/presentation/widget/CustomMessage.dart';
 
 import '../../../data/model/almacen.dart';
 import '../../../data/model/compra.dart';
@@ -358,6 +359,7 @@ class CompraController {
       origen: 'Venta',
     ),
   ];
+  bool showMessage = false; // Variable para controlar la visibilidad del mensaje
 
   final List<Producto> producto = [
     Producto(id: 1, name: 'Laptop', category: 'Electrónicos', quantity: 50, price: 1200.00),
@@ -392,8 +394,7 @@ class CompraController {
   final TextEditingController priceController = TextEditingController();
   TextEditingController autocompleteControllerProducto = TextEditingController();
   TextEditingController autocompleteControllerProveedor = TextEditingController();
-  final TextEditingController totalController = TextEditingController();
-
+  final TextEditingController totalController = TextEditingController(text: '0.0');
 
   ///----- ALMACEN
   final TextEditingController cantidadProductoAlmacen = TextEditingController();
@@ -412,17 +413,18 @@ class CompraController {
   String? guiaAlmacen;
   String selectedPaymentMethod = 'Efectivo';
   final ProductoController _controller =ProductoController();
-
-  DateTime selectedDate = DateTime.now();
-  final List<Pago> pagos = [
-    Pago(tipoPago: 'Efectivo', fecha: DateTime.now(), total: 0.0),
-  ];
+  double totalCompra = 0.0;
+  DateTime selectedDateCompra = DateTime.now();
+  DateTime selectedDatePago = DateTime.now();
+  DateTime selectedDateAlmacen = DateTime.now();
+  late List<Pago> pagos = [Pago(tipoPago: 'Efectivo', fecha: DateTime.now(), total: 0.0)];
   final List<ProductoCompra> compras = []; // Lista global para almacenar las compras
   final List<Producto> productoAlmacen = [];
   String? entradaSalida = 'Entrada';
   Future init(BuildContext context, Function refresh) async {
     this.context = context;
     this.refresh = refresh;
+
   }
 
 
@@ -546,9 +548,7 @@ class CompraController {
 
                               );
                             },
-                            optionsViewBuilder: (BuildContext context,
-                                AutocompleteOnSelected<Producto> onSelected,
-                                Iterable<Producto> options) {
+                            optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<Producto> onSelected, Iterable<Producto> options) {
                               return Align(
                                 alignment: Alignment.topLeft,
                                 child: Material(
@@ -577,6 +577,9 @@ class CompraController {
                                           title: Text(option.name!),
                                           onTap: () {
                                             onSelected(option);
+                                            setModalState((){
+                                              priceController.text = option.price!.toStringAsFixed(2);
+                                            });
                                           },
                                         );
                                       },
@@ -675,15 +678,21 @@ class CompraController {
                                     onPressed: () {
                                       if (_formKeyCompra.currentState!.validate()) {
                                         setModalState(() {
+                                          int? cantidad = int.tryParse(quantityController.text);
+                                          double? precio = double.tryParse(priceController.text);
+                                          double subtotal = (precio! * cantidad!);
+                                          totalCompra = totalCompra + subtotal;
+                                          pagos[0].total = pagos[0].total! + subtotal;
                                           compras.add(
                                             ProductoCompra(
                                               idProducto: int.tryParse(productNameController.text),
                                               nombre: autocompleteControllerProducto.text,
-                                              cantidad: int.tryParse(quantityController.text),
-                                              precio: double.tryParse(priceController.text),
+                                              cantidad: cantidad,
+                                              precio:  subtotal,
                                               igv: igvOption
                                             )
                                           );
+
                                           autocompleteControllerProducto.clear();
                                           quantityController.clear();
                                           priceController.clear();
@@ -701,13 +710,13 @@ class CompraController {
                                   onTap: () async {
                                     final DateTime? pickedDate = await showDatePicker(
                                       context: context,
-                                      initialDate: selectedDate, // Fecha inicial
+                                      initialDate: selectedDateCompra, // Fecha inicial
                                       firstDate: DateTime(2000), // Fecha mínima
                                       lastDate: DateTime.now(), // Fecha máxima: hoy
                                     );
-                                    if (pickedDate != null && pickedDate != selectedDate) {
+                                    if (pickedDate != null && pickedDate != selectedDateCompra) {
                                       setModalState(() {
-                                        selectedDate = pickedDate;
+                                        selectedDateCompra = pickedDate;
                                       });
                                     }
                                   },
@@ -721,7 +730,7 @@ class CompraController {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                                        "${selectedDateCompra.day}/${selectedDateCompra.month}/${selectedDateCompra.year}",
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
@@ -786,21 +795,48 @@ class CompraController {
                                                     style: TextStyle(fontSize: 14.0, color: Colors.grey.shade600),
                                                   ),
                                                   Text(
-                                                    'Precio: ${compra.precio}',
+                                                    'Precio: ${compra.precio!.toStringAsFixed(2)}',
                                                     style: TextStyle(fontSize: 14.0, color: Colors.grey.shade600),
                                                   ),
                                                 ],
                                               ),
                                             ),
-                                            trailing: Chip(
-                                              label: Text(
-                                                compra.igv!,
-                                                style: TextStyle(
-                                                  color: compra.igv! == 'Con IGV' ? Colors.green : Colors.red,
-                                                  fontWeight: FontWeight.bold,
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min, // Asegura que no ocupe más espacio del necesario
+                                              children: [
+                                                Chip(
+                                                  label: Text(
+                                                    compra.igv!,
+                                                    style: TextStyle(
+                                                      color: compra.igv! == 'Con IGV' ? Colors.green : Colors.red,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  backgroundColor: compra.igv! == 'Con IGV' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
                                                 ),
-                                              ),
-                                              backgroundColor: compra.igv! == 'Con IGV' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                                IconButton(
+                                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                                  onPressed: () {
+                                                    // Acción para eliminar el producto de la lista
+                                                    double? total = compra.precio;
+                                                    setModalState(() {
+                                                      totalCompra = totalCompra - total!;
+                                                      pagos[0].total = (pagos[0].total! - total < 0) ? 0.0 : pagos[0].total! - total;
+                                                      compras.removeAt(index);
+                                                      if (compras.isEmpty) {
+                                                        // Restablecer los métodos de pago dejando solo el primero por defecto
+                                                        pagos = [
+                                                          Pago(
+                                                            tipoPago: 'Efectivo',
+                                                            fecha: DateTime.now(),
+                                                            total: 0.0,
+                                                          )
+                                                        ];
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         );
@@ -811,28 +847,33 @@ class CompraController {
                               ),
                             ),
                           const SizedBox(height: 16),
-                          Column(
-                            mainAxisSize: MainAxisSize.min, // Ajusta el tamaño del modal
+                          Row(
                             children: [
-                              // Generar los formularios dinámicamente
-                              ...pagos.asMap().entries.map((entry) {
-                                final int index = entry.key;
-                                final Pago pago = entry.value;
-
+                              const Expanded(flex: 2,child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),)),
+                              const Spacer(),
+                              Expanded(flex: 1,child: Text(totalCompra.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)))
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Column(
+                            children: [
+                              // Generar un formulario para cada método de pago en la lista `pagos`
+                              ...pagos.map((pago) {
+                                int index = pagos.indexOf(pago);
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 16.0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
-                                      // DropdownButton para método de pago
+                                      // Dropdown para método de pago
                                       DropdownButtonFormField<String>(
                                         value: pago.tipoPago,
                                         decoration: InputDecoration(
-                                          labelText: 'Método de Pago',
+                                          labelText: 'Método de Pago ${index + 1}',
                                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                           contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                                           fillColor: Colors.white,
-                                          filled: true
+                                          filled: true,
                                         ),
                                         items: <String>['Efectivo', 'BCP', 'Tarjeta de Crédito', 'Yape', 'Plin']
                                             .map((String method) {
@@ -842,30 +883,27 @@ class CompraController {
                                           );
                                         }).toList(),
                                         onChanged: (String? newValue) {
-                                          if (newValue != null) {
-                                            setModalState(() {
-                                              pago.tipoPago = newValue;
-                                            });
-                                          }
+                                          setModalState(() {
+                                            pago.tipoPago = newValue!;
+                                          });
                                         },
                                       ),
                                       const SizedBox(height: 16.0),
 
-                                      // Row para Fecha, Input de Total y Botón de Eliminar
+                                      // Selector de fecha
                                       Row(
                                         children: [
-                                          // Selector de fecha
                                           Expanded(
                                             flex: 2,
                                             child: InkWell(
                                               onTap: () async {
                                                 final DateTime? pickedDate = await showDatePicker(
                                                   context: context,
-                                                  initialDate: pago.fecha, // Fecha inicial
-                                                  firstDate: DateTime(2000), // Fecha mínima
-                                                  lastDate: DateTime.now(), // Fecha máxima: hoy
+                                                  initialDate: pago.fecha,
+                                                  firstDate: DateTime(2000),
+                                                  lastDate: DateTime.now(),
                                                 );
-                                                if (pickedDate != null && pickedDate != pago.fecha) {
+                                                if (pickedDate != null) {
                                                   setModalState(() {
                                                     pago.fecha = pickedDate;
                                                   });
@@ -873,14 +911,14 @@ class CompraController {
                                               },
                                               child: InputDecorator(
                                                 decoration: InputDecoration(
-                                                  labelText: 'Fecha de Pago',
+                                                  labelText: 'Fecha de Pago ${index + 1}',
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                                   contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                                                   fillColor: Colors.white,
-                                                  filled: true
+                                                  filled: true,
                                                 ),
                                                 child: Text(
-                                                  "${pago.fecha!.day}/${pago.fecha!.month}/${pago.fecha!.year}",
+                                                  "${pago.fecha?.day}/${pago.fecha?.month}/${pago.fecha?.year}",
                                                   style: const TextStyle(fontSize: 16),
                                                 ),
                                               ),
@@ -888,35 +926,28 @@ class CompraController {
                                           ),
                                           const SizedBox(width: 8.0),
 
-                                          // Campo para Total
+                                          // Campo para total
                                           Expanded(
                                             flex: 2,
                                             child: TextFormField(
-                                              initialValue: pago.total?.toString(),
+                                              controller: TextEditingController(text: pago.total!.toStringAsFixed(2)),
                                               keyboardType: TextInputType.number,
                                               decoration: InputDecoration(
-                                                labelText: 'Total',
+                                                labelText: 'Total Pago ${index + 1}',
                                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                                 contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                                                 filled: true,
-                                                fillColor: Colors.white
+                                                fillColor: Colors.white,
                                               ),
-                                              validator: (value) {
-                                                if (value == null || value.isEmpty) {
-                                                  return 'Ingrese el total';
-                                                }
-                                                return null;
-                                              },
                                               onChanged: (value) {
                                                 setModalState(() {
-                                                  pago.total = double.tryParse(value) ?? 0.0;
+                                                  double? nuevoTotal = double.tryParse(value) ?? 0.0;
+
+                                                  pago.total = nuevoTotal;
                                                 });
                                               },
                                             ),
                                           ),
-                                          const SizedBox(width: 8.0),
-
-                                          // Botón para eliminar el formulario
                                           if (index > 0)
                                             IconButton(
                                               icon: const Icon(Icons.delete, color: Colors.red),
@@ -931,19 +962,35 @@ class CompraController {
                                     ],
                                   ),
                                 );
-                              }),
+                              }).toList(),
 
-                              // Botón para agregar más pagos
+                              // Botón para agregar un nuevo método de pago
                               Align(
                                 alignment: Alignment.topLeft,
                                 child: TextButton(
                                   onPressed: () {
                                     setModalState(() {
-                                      pagos.add(Pago(
-                                        tipoPago: 'Efectivo',
-                                        fecha: DateTime.now(),
-                                        total: 0.0,
-                                      ));
+                                      // Calcular el total acumulado de todos los pagos
+                                      double totalPagos = pagos.fold(0.0, (sum, pago) => sum + (pago.total ?? 0.0));
+
+                                      // Validar si se puede agregar un nuevo pago
+                                      if (totalPagos >= totalCompra) {
+                                        // Mostrar mensaje indicando que no se puede agregar más pagos
+                                        showMessage = true;
+                                      } else {
+                                        // Calcular la diferencia restante
+                                        double diferencia = totalCompra - totalPagos;
+
+                                        // Agregar un nuevo método de pago con la diferencia como total inicial
+                                        pagos.add(Pago(
+                                          tipoPago: 'Efectivo',
+                                          fecha: DateTime.now(),
+                                          total: diferencia,
+                                        ));
+
+                                        // Ocultar mensaje si todo es correcto
+                                        showMessage = false;
+                                      }
                                     });
                                   },
                                   child: const Text(
@@ -952,8 +999,15 @@ class CompraController {
                                   ),
                                 ),
                               ),
+
                             ],
                           ),
+
+                          if (showMessage)
+                            const CustomMessage(
+                              message: 'Para agregar más métodos de pago, el total del primer método de pago tiene que ser menor del total.',
+                              isPositive: false, // Indicar si es un mensaje negativo o positivo
+                            ),
                           CustomDropdown<Cliente>.search(
                             hintText: 'seleccionar proveedor',
                             items: proveedores,
@@ -990,12 +1044,17 @@ class CompraController {
                                     for (var element in compras) {
                                       print('PRODUCTO DE compra $element');
                                     }
-                                    for (var element in pagos) {
-                                      print('PRODUCTO DE PAGO ${element.tipoPago}');
-                                      print('PRODUCTO DE PAGO ${element.fecha}');
-                                      print('PRODUCTO DE PAGO ${element.total}');
-                                    }
 
+                                // Asegúrate de que la lista `pagos` tenga elementos antes de imprimir
+                                if (pagos.isNotEmpty) {
+                                  for (var pago in pagos) {
+                                    print('Método de Pago: ${pago.tipoPago}');
+                                    print('Fecha de Pago: ${pago.fecha}');
+                                    print('Total: ${pago.total}');
+                                  }
+                                } else {
+                                  print('No hay pagos registrados.');
+                                }
                               },
                               child: const Text('GUARDAR', style: TextStyle(color: Colors.white, fontSize: 16)),
 
@@ -1231,13 +1290,13 @@ class CompraController {
                                   onTap: () async {
                                     final DateTime? pickedDate = await showDatePicker(
                                       context: context,
-                                      initialDate: selectedDate, // Fecha inicial
+                                      initialDate: selectedDateAlmacen, // Fecha inicial
                                       firstDate: DateTime(2000), // Fecha mínima
                                       lastDate: DateTime.now(), // Fecha máxima: hoy
                                     );
-                                    if (pickedDate != null && pickedDate != selectedDate) {
+                                    if (pickedDate != null && pickedDate != selectedDateAlmacen) {
                                       setModalState(() {
-                                        selectedDate = pickedDate;
+                                        selectedDateAlmacen = pickedDate;
                                       });
                                     }
                                   },
@@ -1251,7 +1310,7 @@ class CompraController {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                                        "${selectedDateAlmacen.day}/${selectedDateAlmacen.month}/${selectedDateAlmacen.year}",
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
